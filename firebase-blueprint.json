@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "Lead": {
+      "title": "Lead",
+      "description": "A lead submission from a potential partner.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the applicant."
+        },
+        "contact": {
+          "type": "string",
+          "description": "The contact information (phone/email)."
+        },
+        "experience": {
+          "type": "string",
+          "description": "Years of experience."
+        },
+        "industry": {
+          "type": "string",
+          "description": "Industry of expertise."
+        },
+        "revenue": {
+          "type": "string",
+          "description": "Current revenue range."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp of submission."
+        },
+        "uid": {
+          "type": "string",
+          "description": "The UID of the user who submitted (if authenticated)."
+        }
+      },
+      "required": ["name", "contact", "created_at"]
+    }
+  },
+  "firestore": {
+    "/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Collection of all partner applications."
+    }
+  }
+}

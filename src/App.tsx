@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import { motion } from 'motion/react';
 import { 
   CheckCircle2, 
@@ -14,12 +14,121 @@ import {
   ShieldCheck, 
   Clock, 
   ArrowRight,
-  ChevronRight,
+  ChevronRight, 
   DollarSign,
   Briefcase,
   Zap,
-  Check
+  Check,
+  LogIn,
+  LogOut
 } from 'lucide-react';
+import { 
+  db, 
+  auth, 
+  googleProvider, 
+  signInWithPopup, 
+  collection, 
+  addDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  orderBy, 
+  onSnapshot 
+} from './firebase';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+
+// Error Handling Spec for Firestore
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+// Error Boundary Component
+class ErrorBoundary extends Component<any, any> {
+  public state: any;
+  public props: any;
+
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      let errorMessage = "알 수 없는 오류가 발생했습니다.";
+      try {
+        const parsed = JSON.parse(this.state.error?.message || "");
+        if (parsed.error && parsed.error.includes("insufficient permissions")) {
+          errorMessage = "권한이 없습니다. 관리자 계정으로 로그인해 주세요.";
+        }
+      } catch (e) {
+        errorMessage = this.state.error?.message || errorMessage;
+      }
+
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+          <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-4">오류 발생</h2>
+            <p className="text-slate-600 mb-8">{errorMessage}</p>
+            <Button onClick={() => window.location.reload()} className="bg-blue-600 text-white w-full">다시 시도</Button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const Section = ({ children, className = "", id }: { children: React.ReactNode, className?: string, id?: string }) => (
   <section id={id} className={`py-20 px-6 md:px-12 lg:px-24 ${className}`}>
@@ -40,6 +149,14 @@ const Button = ({ children, className = "", onClick, disabled }: { children: Rea
 );
 
 export default function App() {
+  return (
+    <ErrorBoundary>
+      <MainApp />
+    </ErrorBoundary>
+  );
+}
+
+function MainApp() {
   const [formData, setFormData] = useState({
     name: '',
     contact: '',
@@ -54,10 +171,54 @@ export default function App() {
   const [leads, setLeads] = useState<any[]>([]);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setIsAuthReady(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthReady || !isAdminView || !user) return;
+
+    const q = query(collection(db, 'leads'), orderBy('created_at', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const leadsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setLeads(leadsData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'leads');
+    });
+
+    return () => unsubscribe();
+  }, [isAuthReady, isAdminView, user]);
 
   const scrollToForm = () => {
     document.getElementById('support-form')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      alert("로그인에 실패했습니다.");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setIsAdminView(false);
+    } catch (error) {
+      alert("로그아웃에 실패했습니다.");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,20 +230,15 @@ export default function App() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/support', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+      await addDoc(collection(db, 'leads'), {
+        ...formData,
+        created_at: new Date().toISOString(),
+        uid: auth.currentUser?.uid || null
       });
-      
-      if (response.ok) {
-        alert("지원이 완료되었습니다. 24시간 내에 연락드리겠습니다.");
-        setFormData({ name: '', contact: '', experience: '', industry: '', revenue: '' });
-      } else {
-        alert("지원 중 오류가 발생했습니다. 다시 시도해주세요.");
-      }
+      alert("지원이 완료되었습니다. 24시간 내에 연락드리겠습니다.");
+      setFormData({ name: '', contact: '', experience: '', industry: '', revenue: '' });
     } catch (error) {
-      alert("서버와 통신 중 오류가 발생했습니다.");
+      handleFirestoreError(error, OperationType.CREATE, 'leads');
     } finally {
       setIsSubmitting(false);
     }
@@ -94,33 +250,25 @@ export default function App() {
       return;
     }
 
-    try {
-      const response = await fetch('/api/leads');
-      const data = await response.json();
-      setLeads(data);
-      setIsAdminView(true);
-      setShowPasswordModal(false);
-      setAdminPassword('');
-    } catch (error) {
-      alert("데이터를 불러오지 못했습니다.");
+    if (!user) {
+      alert("관리자 권한 확인을 위해 구글 로그인이 필요합니다.");
+      handleLogin();
+      return;
     }
+
+    setIsAdminView(true);
+    setShowPasswordModal(false);
+    setAdminPassword('');
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
 
     try {
-      const response = await fetch(`/api/leads/${deleteId}`, {
-        method: 'DELETE'
-      });
-      if (response.ok) {
-        setLeads(leads.filter(lead => lead.id !== deleteId));
-        setDeleteId(null);
-      } else {
-        alert("삭제 실패");
-      }
+      await deleteDoc(doc(db, 'leads', deleteId));
+      setDeleteId(null);
     } catch (error) {
-      alert("오류 발생");
+      handleFirestoreError(error, OperationType.DELETE, `leads/${deleteId}`);
     }
   };
 
@@ -129,8 +277,16 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 p-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">지원자 현황 (관리자)</h1>
-            <Button onClick={() => setIsAdminView(false)} className="bg-slate-900 text-white">랜딩페이지로 돌아가기</Button>
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-bold">지원자 현황 (관리자)</h1>
+              <span className="text-sm text-slate-500">{user?.email}</span>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={handleLogout} className="bg-slate-200 text-slate-700 flex items-center gap-2">
+                <LogOut className="w-4 h-4" /> 로그아웃
+              </Button>
+              <Button onClick={() => setIsAdminView(false)} className="bg-slate-900 text-white">랜딩페이지로 돌아가기</Button>
+            </div>
           </div>
           <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
             <table className="w-full text-left">
