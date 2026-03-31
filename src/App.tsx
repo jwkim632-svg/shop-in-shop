@@ -243,11 +243,16 @@ function MainApp() {
 
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, 'leads'), {
+      const leadData: any = {
         ...formData,
         created_at: new Date().toISOString(),
-        uid: auth.currentUser?.uid || null
-      });
+      };
+      
+      if (auth.currentUser?.uid) {
+        leadData.uid = auth.currentUser.uid;
+      }
+
+      await addDoc(collection(db, 'leads'), leadData);
       setStatusModal({ type: 'success', message: "지원이 완료되었습니다. 24시간 내에 연락드리겠습니다." });
       setFormData({ name: '', contact: '', experience: '', industry: '', revenue: '' });
     } catch (error) {
@@ -938,7 +943,8 @@ function MainApp() {
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 ml-1">연락처</label>
                 <input 
-                  type="text" 
+                  type="tel" 
+                  inputMode="tel"
                   value={formData.contact}
                   placeholder="010-0000-0000"
                   className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
@@ -969,17 +975,22 @@ function MainApp() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-bold text-slate-700 ml-1">현재 매출 구간</label>
-              <select 
-                value={formData.revenue}
-                className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
-                onChange={(e) => setFormData({...formData, revenue: e.target.value})}
-              >
-                <option value="">선택해주세요</option>
-                <option value="3,000만원 미만">3,000만원 미만</option>
-                <option value="3,000만원 ~ 5,000만원">3,000만원 ~ 5,000만원</option>
-                <option value="5,000만원 ~ 1억">5,000만원 ~ 1억</option>
-                <option value="1억 이상">1억 이상</option>
-              </select>
+              <div className="relative">
+                <select 
+                  value={formData.revenue}
+                  className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none pr-12"
+                  onChange={(e) => setFormData({...formData, revenue: e.target.value})}
+                >
+                  <option value="">선택해주세요</option>
+                  <option value="3,000만원 미만">3,000만원 미만</option>
+                  <option value="3,000만원 ~ 5,000만원">3,000만원 ~ 5,000만원</option>
+                  <option value="5,000만원 ~ 1억">5,000만원 ~ 1억</option>
+                  <option value="1억 이상">1억 이상</option>
+                </select>
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronRight className="w-5 h-5 text-slate-400 rotate-90" />
+                </div>
+              </div>
             </div>
             <Button 
               type="submit"
