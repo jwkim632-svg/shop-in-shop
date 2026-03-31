@@ -205,10 +205,21 @@ function MainApp() {
   };
 
   const handleLogin = async () => {
+    console.log("Attempting Google login...");
     try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      alert("로그인에 실패했습니다.");
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log("Login success:", result.user.email);
+    } catch (error: any) {
+      console.error("Login error details:", error);
+      let message = "로그인에 실패했습니다.";
+      if (error.code === 'auth/popup-blocked') {
+        message = "팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해 주세요.";
+      } else if (error.code === 'auth/unauthorized-domain') {
+        message = "승인되지 않은 도메인입니다. Firebase 콘솔에서 현재 도메인을 승인된 도메인에 추가해야 합니다.";
+      } else if (error.message) {
+        message = `로그인 실패: ${error.message}`;
+      }
+      alert(message);
     }
   };
 
