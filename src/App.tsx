@@ -215,7 +215,7 @@ function MainApp() {
       if (error.code === 'auth/popup-blocked') {
         message = "팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해 주세요.";
       } else if (error.code === 'auth/unauthorized-domain') {
-        message = "승인되지 않은 도메인입니다. Firebase 콘솔에서 현재 도메인을 승인된 도메인에 추가해야 합니다.";
+        message = `승인되지 않은 도메인(${window.location.hostname})입니다. Firebase 콘솔에서 이 도메인을 승인된 도메인에 추가해야 합니다.`;
       } else if (error.message) {
         message = `로그인 실패: ${error.message}`;
       }
@@ -284,55 +284,98 @@ function MainApp() {
 
   if (isAdminView) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8">
+      <div className="min-h-screen bg-slate-50 p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-bold">지원자 현황 (관리자)</h1>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+              <h1 className="text-2xl md:text-3xl font-bold">지원자 현황 (관리자)</h1>
               <span className="text-sm text-slate-500">{user?.email}</span>
             </div>
-            <div className="flex gap-3">
-              <Button onClick={handleLogout} className="bg-slate-200 text-slate-700 flex items-center gap-2">
+            <div className="flex gap-3 w-full md:w-auto">
+              <Button onClick={handleLogout} className="flex-1 md:flex-none bg-slate-200 text-slate-700 flex items-center justify-center gap-2">
                 <LogOut className="w-4 h-4" /> 로그아웃
               </Button>
-              <Button onClick={() => setIsAdminView(false)} className="bg-slate-900 text-white">랜딩페이지로 돌아가기</Button>
+              <Button onClick={() => setIsAdminView(false)} className="flex-1 md:flex-none bg-slate-900 text-white">랜딩페이지</Button>
             </div>
           </div>
-          <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left">
-              <thead className="bg-slate-900 text-white">
-                <tr>
-                  <th className="p-4">지원일시</th>
-                  <th className="p-4">이름</th>
-                  <th className="p-4">연락처</th>
-                  <th className="p-4">경력</th>
-                  <th className="p-4">산업</th>
-                  <th className="p-4">매출구간</th>
-                  <th className="p-4">관리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leads.map((lead) => (
-                  <tr key={lead.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="p-4 text-sm text-slate-500">{new Date(lead.created_at).toLocaleString()}</td>
-                    <td className="p-4 font-bold">{lead.name}</td>
-                    <td className="p-4">{lead.contact}</td>
-                    <td className="p-4">{lead.experience}</td>
-                    <td className="p-4">{lead.industry}</td>
-                    <td className="p-4">{lead.revenue}</td>
-                    <td className="p-4">
-                      <button 
-                        onClick={() => setDeleteId(lead.id)}
-                        className="text-red-500 hover:text-red-700 text-sm font-bold"
-                      >
-                        삭제
-                      </button>
-                    </td>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-slate-900 text-white">
+                  <tr>
+                    <th className="p-4 whitespace-nowrap">지원일시</th>
+                    <th className="p-4 whitespace-nowrap">이름</th>
+                    <th className="p-4 whitespace-nowrap">연락처</th>
+                    <th className="p-4 whitespace-nowrap">경력</th>
+                    <th className="p-4 whitespace-nowrap">산업</th>
+                    <th className="p-4 whitespace-nowrap">매출구간</th>
+                    <th className="p-4 whitespace-nowrap">관리</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {leads.map((lead) => (
+                    <tr key={lead.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="p-4 text-sm text-slate-500 whitespace-nowrap">{new Date(lead.created_at).toLocaleString()}</td>
+                      <td className="p-4 font-bold whitespace-nowrap">{lead.name}</td>
+                      <td className="p-4 whitespace-nowrap">{lead.contact}</td>
+                      <td className="p-4 whitespace-nowrap">{lead.experience}</td>
+                      <td className="p-4 whitespace-nowrap">{lead.industry}</td>
+                      <td className="p-4 whitespace-nowrap">{lead.revenue}</td>
+                      <td className="p-4">
+                        <button 
+                          onClick={() => setDeleteId(lead.id)}
+                          className="text-red-500 hover:text-red-700 text-sm font-bold"
+                        >
+                          삭제
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             {leads.length === 0 && <div className="p-20 text-center text-slate-400">아직 지원자가 없습니다.</div>}
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-4">
+            {leads.map((lead) => (
+              <div key={lead.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-xs text-slate-400 mb-1">{new Date(lead.created_at).toLocaleString()}</p>
+                    <h3 className="text-lg font-bold text-slate-900">{lead.name}</h3>
+                  </div>
+                  <button 
+                    onClick={() => setDeleteId(lead.id)}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                  >
+                    삭제
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">연락처</p>
+                    <p className="text-slate-700">{lead.contact}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">경력</p>
+                    <p className="text-slate-700">{lead.experience}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">산업</p>
+                    <p className="text-slate-700">{lead.industry}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">매출구간</p>
+                    <p className="text-slate-700">{lead.revenue}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {leads.length === 0 && <div className="p-20 text-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">아직 지원자가 없습니다.</div>}
           </div>
         </div>
 
@@ -940,12 +983,15 @@ function MainApp() {
           <p className="text-slate-500 text-sm">
             &copy; 2026 Shop in Shop Partnership. All rights reserved.
           </p>
-          <button 
-            onClick={() => setShowPasswordModal(true)}
-            className="mt-8 px-4 py-2 rounded-lg border border-slate-700 text-slate-400 text-xs hover:bg-slate-800 hover:text-white transition-all"
-          >
-            지원자 현황 확인 (Admin View)
-          </button>
+          <div className="mt-12">
+            <button 
+              onClick={() => setShowPasswordModal(true)}
+              className="px-6 py-3 rounded-xl border border-slate-700 text-slate-400 text-sm md:text-xs hover:bg-slate-800 hover:text-white transition-all inline-flex items-center gap-2"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              지원자 현황 확인 (Admin View)
+            </button>
+          </div>
         </div>
       </footer>
     </div>
