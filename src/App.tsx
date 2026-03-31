@@ -20,7 +20,10 @@ import {
   Zap,
   Check,
   LogIn,
-  LogOut
+  LogOut,
+  Share2,
+  Smartphone,
+  Monitor
 } from 'lucide-react';
 import { 
   db, 
@@ -287,6 +290,24 @@ function MainApp() {
       setDeleteId(null);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `leads/${deleteId}`);
+    }
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Shop in Shop 헤드헌터 파트너 모집',
+          text: '독립적인 헤드헌터들을 위한 Shop in Shop 파트너십 랜딩페이지입니다.',
+          url: window.location.href,
+        });
+      } catch (error) {
+        console.log('Error sharing:', error);
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      setStatusModal({ type: 'success', message: '링크가 클립보드에 복사되었습니다.' });
     }
   };
 
@@ -1031,6 +1052,28 @@ function MainApp() {
           <p className="text-slate-500 text-sm">
             &copy; 2026 Shop in Shop Partnership. All rights reserved.
           </p>
+          <div className="mt-12 flex flex-col md:flex-row items-center justify-center gap-6">
+            <button 
+              onClick={handleShare}
+              className="px-8 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold flex items-center gap-3 hover:bg-slate-50 transition-all shadow-sm"
+            >
+              <Share2 className="w-5 h-5 text-blue-600" />
+              친구에게 공유하기
+            </button>
+            <div className="flex items-center gap-4 p-4 bg-slate-800 rounded-2xl border border-slate-700">
+              <div className="flex -space-x-2">
+                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center border-2 border-slate-900">
+                  <Smartphone className="w-4 h-4 text-white" />
+                </div>
+                <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center border-2 border-slate-900">
+                  <Monitor className="w-4 h-4 text-white" />
+                </div>
+              </div>
+              <p className="text-slate-400 text-sm font-medium">
+                안드로이드/맥에서 <span className="text-white font-bold">"앱으로 설치"</span>하여 <br className="md:hidden" /> 더 편리하게 이용하세요.
+              </p>
+            </div>
+          </div>
           <div className="mt-12">
             <button 
               onClick={() => setShowPasswordModal(true)}
