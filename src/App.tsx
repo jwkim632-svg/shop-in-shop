@@ -138,8 +138,9 @@ const Section = ({ children, className = "", id }: { children: React.ReactNode, 
   </section>
 );
 
-const Button = ({ children, className = "", onClick, disabled }: { children: React.ReactNode, className?: string, onClick?: () => void, disabled?: boolean }) => (
+const Button = ({ children, className = "", onClick, disabled, type = "button" }: { children: React.ReactNode, className?: string, onClick?: () => void, disabled?: boolean, type?: "button" | "submit" | "reset" }) => (
   <button 
+    type={type}
     onClick={onClick}
     disabled={disabled}
     className={`px-8 py-4 rounded-full font-bold text-lg transition-all active:scale-95 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
@@ -174,6 +175,7 @@ function MainApp() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [statusModal, setStatusModal] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -219,7 +221,7 @@ function MainApp() {
       } else if (error.message) {
         message = `로그인 실패: ${error.message}`;
       }
-      alert(message);
+      setStatusModal({ type: 'error', message });
     }
   };
 
@@ -228,14 +230,14 @@ function MainApp() {
       await signOut(auth);
       setIsAdminView(false);
     } catch (error) {
-      alert("로그아웃에 실패했습니다.");
+      setStatusModal({ type: 'error', message: "로그아웃에 실패했습니다." });
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.contact) {
-      alert("이름과 연락처를 입력해주세요.");
+      setStatusModal({ type: 'error', message: "이름과 연락처를 입력해주세요." });
       return;
     }
 
@@ -246,10 +248,11 @@ function MainApp() {
         created_at: new Date().toISOString(),
         uid: auth.currentUser?.uid || null
       });
-      alert("지원이 완료되었습니다. 24시간 내에 연락드리겠습니다.");
+      setStatusModal({ type: 'success', message: "지원이 완료되었습니다. 24시간 내에 연락드리겠습니다." });
       setFormData({ name: '', contact: '', experience: '', industry: '', revenue: '' });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'leads');
+      setStatusModal({ type: 'error', message: "지원 중 오류가 발생했습니다. 다시 시도해 주세요." });
     } finally {
       setIsSubmitting(false);
     }
@@ -262,7 +265,7 @@ function MainApp() {
     }
 
     if (adminPassword !== "jwkim4924") {
-      alert("비밀번호가 틀렸습니다.");
+      setStatusModal({ type: 'error', message: "비밀번호가 틀렸습니다." });
       return;
     }
 
@@ -491,6 +494,39 @@ function MainApp() {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Status Modal */}
+      {statusModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            onClick={() => setStatusModal(null)}
+          />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative bg-white w-full max-w-sm p-8 rounded-[2.5rem] shadow-2xl text-center"
+          >
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 ${statusModal.type === 'success' ? 'bg-green-50' : 'bg-red-50'}`}>
+              {statusModal.type === 'success' ? (
+                <CheckCircle2 className="w-8 h-8 text-green-600" />
+              ) : (
+                <AlertCircle className="w-8 h-8 text-red-600" />
+              )}
+            </div>
+            <h3 className="text-2xl font-bold mb-2">{statusModal.type === 'success' ? '지원 완료' : '오류 발생'}</h3>
+            <p className="text-slate-600 mb-8">{statusModal.message}</p>
+            <Button 
+              onClick={() => setStatusModal(null)}
+              className={`w-full text-white ${statusModal.type === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+            >
+              확인
+            </Button>
+          </motion.div>
         </div>
       )}
 
@@ -946,6 +982,7 @@ function MainApp() {
               </select>
             </div>
             <Button 
+              type="submit"
               className={`w-full text-white py-5 text-xl ${isSubmitting ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
               disabled={isSubmitting}
             >
