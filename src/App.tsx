@@ -245,14 +245,13 @@ function MainApp() {
   };
 
   const fetchLeads = async () => {
-    if (adminPassword !== "jwkim4924") {
-      alert("비밀번호가 틀렸습니다.");
+    if (!user) {
+      handleLogin();
       return;
     }
 
-    if (!user) {
-      alert("관리자 권한 확인을 위해 구글 로그인이 필요합니다.");
-      handleLogin();
+    if (adminPassword !== "jwkim4924") {
+      alert("비밀번호가 틀렸습니다.");
       return;
     }
 
@@ -388,20 +387,55 @@ function MainApp() {
       {showPasswordModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowPasswordModal(false)} />
-          <div className="relative bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl">
-            <h3 className="text-xl font-bold mb-4">관리자 비밀번호</h3>
-            <input 
-              type="password"
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 mb-6 focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="비밀번호 입력"
-              onKeyDown={(e) => e.key === 'Enter' && fetchLeads()}
-            />
-            <div className="flex gap-3">
-              <Button onClick={() => setShowPasswordModal(false)} className="flex-1 bg-slate-100 text-slate-600">취소</Button>
-              <Button onClick={fetchLeads} className="flex-1 bg-blue-600 text-white">확인</Button>
-            </div>
+          <div className="relative bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl shadow-slate-200/50 border border-slate-100">
+            {!user ? (
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <LogIn className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-bold mb-2">관리자 로그인</h3>
+                <p className="text-slate-500 mb-8 text-sm">관리자 권한 확인을 위해<br />구글 로그인이 필요합니다.</p>
+                <Button 
+                  onClick={handleLogin} 
+                  className="w-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center gap-3 py-4 hover:bg-slate-50 transition-colors"
+                >
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+                  Google로 로그인
+                </Button>
+                <button 
+                  onClick={() => setShowPasswordModal(false)}
+                  className="mt-6 text-slate-400 text-sm hover:text-slate-600"
+                >
+                  취소
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-6 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 overflow-hidden">
+                    {user.photoURL ? <img src={user.photoURL} alt="" className="w-full h-full object-cover" /> : <Users className="w-5 h-5 text-slate-400" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate">{user.displayName}</p>
+                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold mb-4">관리자 비밀번호</h3>
+                <input 
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 mb-6 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="비밀번호 입력"
+                  onKeyDown={(e) => e.key === 'Enter' && fetchLeads()}
+                  autoFocus
+                />
+                <div className="flex gap-3">
+                  <Button onClick={() => setShowPasswordModal(false)} className="flex-1 bg-slate-100 text-slate-600">취소</Button>
+                  <Button onClick={fetchLeads} className="flex-1 bg-blue-600 text-white">확인</Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
