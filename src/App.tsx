@@ -786,27 +786,6 @@ function MainApp() {
         </div>
       </Section>
 
-      {/* Performance Section */}
-      <Section className="py-32">
-        <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight">검증된 데이터</h2>
-          <p className="text-xl text-slate-500">숫자가 증명하는 파트너십의 가치</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {[
-            { label: "평균 매출 성장", value: "240%", sub: "합류 후 6개월 기준" },
-            { label: "포지션 수주율", value: "3.5배", sub: "브랜드 인프라 활용 시" },
-            { label: "파트너 만족도", value: "98%", sub: "시스템 및 지원 만족도" }
-          ].map((stat, i) => (
-            <div key={i} className="p-16 bg-white rounded-[3rem] text-center border border-slate-100 shadow-sm hover:shadow-xl transition-all">
-              <p className="text-slate-500 font-bold mb-6 uppercase tracking-widest text-sm">{stat.label}</p>
-              <p className="text-6xl font-black text-blue-600 mb-4 tracking-tighter">{stat.value}</p>
-              <p className="text-slate-400 font-medium">{stat.sub}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
       {/* Operation Section */}
       <Section className="bg-slate-900 text-white py-32 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_80%,rgba(37,99,235,0.1),transparent_50%)]" />
